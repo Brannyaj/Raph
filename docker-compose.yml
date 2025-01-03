@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://raph:raph@db:5432/raph
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${SECRET_KEY}
+      - GDS_API_KEY=${GDS_API_KEY}
+      - AI_SERVICE_KEY=${AI_SERVICE_KEY}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app/backend
+    networks:
+      - raph-network
+
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=raph
+      - POSTGRES_PASSWORD=raph
+      - POSTGRES_DB=raph
+    ports:
+      - "5432:5432"
+    networks:
+      - raph-network
+
+  redis:
+    image: redis:6
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - raph-network
+
+  nginx:
+    image: nginx:1.19
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./frontend/build:/usr/share/nginx/html
+    depends_on:
+      - web
+    networks:
+      - raph-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  raph-network:
+    driver: bridge
